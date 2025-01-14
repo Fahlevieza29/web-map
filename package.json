@@ -9,11 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@arcgis/core": "^4.30.9",
+    "@arcgis/core": "^4.31.6",
     "@emotion/react": "^11.13.0",
     "@emotion/styled": "^11.13.0",
     "@mui/icons-material": "^6.3.1",
     "@mui/material": "^6.3.1",
+    "@prisma/client": "^6.2.1",
     "esri-loader": "^3.7.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.2",
@@ -21,5 +22,8 @@
     "next": "14.2.5",
     "react": "^18",
     "react-dom": "^18"
+  },
+  "devDependencies": {
+    "prisma": "^6.2.1"
   }
 }
