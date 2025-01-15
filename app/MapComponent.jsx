@@ -106,10 +106,12 @@ const MapComponent = () => {
       {isMapReady && (
         <>
           {/* Map Controls */}
-          <SideBySideControl view={view} />
+         
           <Box sx={{ position: "absolute", top: "150px", right: "30px", zIndex: 1000 }}>
-            <Print view={view} viewRef={viewRef.current} addedLayers={addedLayers} />
+            <Print view={view} addedLayers={addedLayers} />
           </Box>
+        
+          <SideBySideControl view={view} addedLayers={addedLayers} />
 
           {/* Meja Kerja Desktop */}
           <Box

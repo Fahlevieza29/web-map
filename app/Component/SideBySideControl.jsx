@@ -1,100 +1,132 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '@mui/material';
-import CompareArrowsOutlined from '@mui/icons-material/CompareArrowsOutlined';
-import CloseTwoTone from '@mui/icons-material/CloseTwoTone';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet-side-by-side';
+import { useEffect, useRef, useState } from "react";
+import { Box, IconButton } from "@mui/material";
+import { CompareArrows } from "@mui/icons-material";
+import Map from "@arcgis/core/Map";
+import MapView from "@arcgis/core/views/MapView";
 
-const SideBySideControl = ({ mapInstance }) => {
-  const [showSideBySide, setShowSideBySide] = useState(false);
-  const sideBySideRef = useRef(null);
-  const leftLayerRef = useRef(null);
-  const rightLayerRef = useRef(null);
-  const baseLayerRef = useRef(null);
+const SideBySideControl = ({ view, addedLayers }) => {
+  const [isSplitView, setIsSplitView] = useState(false);
+  const leftMapRef = useRef(null);
+  const rightMapRef = useRef(null);
+  const leftViewRef = useRef(null);
+  const rightViewRef = useRef(null);
+
+  const toggleSplitView = () => {
+    setIsSplitView(!isSplitView);
+  };
+
+  // Function to sync map movements
+  const syncMapViews = (sourceView, targetView) => {
+    if (!sourceView || !targetView) return;
+
+    // Watch for changes in the source view's camera
+    sourceView.watch("camera", (camera) => {
+      targetView.camera = camera;
+    });
+  };
 
   useEffect(() => {
-    if (!mapInstance) return;
-
-    if (showSideBySide) {
-      // Remove base layer when enabling side-by-side
-      if (baseLayerRef.current) {
-        mapInstance.removeLayer(baseLayerRef.current);
-      }
-
-      // Initialize left and right layers
-      const leftLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-      });
-      const rightLayer = L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        {
-          attribution: '© Esri, Maxar, Earthstar Geographics, and the GIS User Community',
-        }
-      );
-
-      leftLayerRef.current = leftLayer.addTo(mapInstance);
-      rightLayerRef.current = rightLayer.addTo(mapInstance);
-
-      // Add side-by-side control
-      sideBySideRef.current = L.control.sideBySide(leftLayerRef.current, rightLayerRef.current).addTo(mapInstance);
-    } else {
-      // Remove side-by-side control
-      if (sideBySideRef.current) {
-        sideBySideRef.current.remove();
-        sideBySideRef.current = null;
-      }
-
-      // Remove left and right layers
-      if (leftLayerRef.current) {
-        mapInstance.removeLayer(leftLayerRef.current);
-        leftLayerRef.current = null;
-      }
-      if (rightLayerRef.current) {
-        mapInstance.removeLayer(rightLayerRef.current);
-        rightLayerRef.current = null;
-      }
-
-      // Re-add base layer
-      if (baseLayerRef.current) {
-        baseLayerRef.current.addTo(mapInstance);
-      } else {
-        const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
+    if (isSplitView && view) {
+      // Initialize left map using the same map instance as the main view
+      if (leftMapRef.current && !leftViewRef.current) {
+        const leftView = new MapView({
+          container: leftMapRef.current,
+          map: view.map, // Use the same map instance as the main view
+          center: view.center,
+          zoom: view.zoom,
+          constraints: {
+            rotationEnabled: false
+          }
         });
-        baseLayerRef.current = baseLayer.addTo(mapInstance);
+        leftViewRef.current = leftView;
+      }
+
+      // Initialize right map with Satellite basemap only
+      if (rightMapRef.current && !rightViewRef.current) {
+        const rightMap = new Map({
+          basemap: "satellite"
+        });
+        
+        const rightView = new MapView({
+          container: rightMapRef.current,
+          map: rightMap,
+          center: view.center,
+          zoom: view.zoom,
+          constraints: {
+            rotationEnabled: false
+          }
+        });
+        rightViewRef.current = rightView;
+      }
+
+      // Sync views
+      if (leftViewRef.current && rightViewRef.current) {
+        syncMapViews(leftViewRef.current, rightViewRef.current);
+        syncMapViews(rightViewRef.current, leftViewRef.current);
       }
     }
 
-    // Cleanup DOM elements for the side-by-side splitter
+    // Cleanup function
     return () => {
-      if (!showSideBySide) {
-        document.querySelectorAll('.leaflet-sbs-divider').forEach((divider) => divider.remove());
-        document.querySelectorAll('.leaflet-sbs-handle').forEach((handle) => handle.remove());
+      if (!isSplitView) {
+        if (leftViewRef.current) {
+          leftViewRef.current.destroy();
+          leftViewRef.current = null;
+        }
+        if (rightViewRef.current) {
+          rightViewRef.current.destroy();
+          rightViewRef.current = null;
+        }
       }
     };
-  }, [showSideBySide, mapInstance]);
-
-  const toggleSideBySide = () => {
-    setShowSideBySide((prev) => !prev);
-  };
+  }, [isSplitView, view, addedLayers]);
 
   return (
     <>
-      <Button
-        variant="contained"
-        color={showSideBySide ? 'secondary' : 'primary'}
-        onClick={toggleSideBySide}
-        startIcon={showSideBySide ? <CloseTwoTone /> : <CompareArrowsOutlined />}
-        sx={{
-          position: 'absolute',
-          top: '10px',
-          right: '50px',
-          zIndex: 1000,
-        }}
-      >
-        {showSideBySide ? 'Close Side-by-Side' : 'Show Side-by-Side'}
-      </Button>
+      <Box sx={{ position: "absolute", top: "150px", right: "30px", zIndex: 1000 }}>
+        <IconButton
+          onClick={toggleSplitView}
+          sx={{
+            backgroundColor: "white",
+            "&:hover": { backgroundColor: "white" },
+            width: "40px",
+            height: "40px",
+            boxShadow: 2,
+          }}
+        >
+          <CompareArrows />
+        </IconButton>
+      </Box>
+
+      {isSplitView && (
+        <Box 
+          sx={{ 
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 900,
+            display: "flex"
+          }}
+        >
+          <Box
+            ref={leftMapRef}
+            sx={{
+              width: "50%",
+              height: "100%",
+              borderRight: "2px solid white",
+            }}
+          />
+          <Box
+            ref={rightMapRef}
+            sx={{
+              width: "50%",
+              height: "100%",
+            }}
+          />
+        </Box>
+      )}
     </>
   );
 };
