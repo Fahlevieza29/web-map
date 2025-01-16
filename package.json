@@ -20,7 +20,7 @@
     "jspdf": "^2.5.2",
     "leaflet-side-by-side": "^2.2.0",
     "lucide-react": "^0.471.1",
-    "next": "^14.2.5",
+    "next": "^14.2.23",
     "react": "^18",
     "react-dom": "^18"
   },

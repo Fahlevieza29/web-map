@@ -168,9 +168,16 @@ const Print = ({ view, addedLayers }) => {
 
   // Function to add legend
   const addLegend = async (pdf, visibleLayers) => {
-    let legendY = 110;
     pdf.setFontSize(14);
-    pdf.text("Legenda", 315, 102);
+    pdf.setFont("helvetica", "bold"); // Use bold font
+    pdf.text("LEGENDA", 310, 110); // Legend position
+
+    // Set font size and style for the legend items
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal"); // Use normal font for legend items
+
+    let legendY = 120; // Starting position for legend items
+    const legendSpacing = 10; // Spacing between legend items);
 
     for (const layer of visibleLayers) {
       if (!layer.visible) continue;
@@ -248,20 +255,6 @@ const Print = ({ view, addedLayers }) => {
   };
 
   // Function to add scale bar and north arrow
-  const addMapElements = (pdf) => {
-    // Scale bar
-    pdf.setLineWidth(0.5);
-    pdf.line(315, 60, 365, 60);
-    pdf.setFontSize(8);
-    pdf.text("Scale", 335, 58);
-
-    // North arrow
-    pdf.setLineWidth(0.5);
-    pdf.line(385, 70, 395, 50);
-    pdf.line(395, 50, 405, 70);
-    pdf.line(385, 70, 405, 70);
-    pdf.text("N", 393, 48);
-  };
 
   const handlePrintArea = async () => {
     if (!view) return;
@@ -297,6 +290,12 @@ const Print = ({ view, addedLayers }) => {
       const isLandscape = orientation === "landscape";
       const pageWidth = isLandscape ? width : height;
       const pageHeight = isLandscape ? height : width;
+      const margin = 5; // Outer margin
+      const adjustedMargin = margin + 10; // Shifted a bit more to the right
+      const columnWidth = Math.min((pageWidth * 0.3) - adjustedMargin, pageWidth - (pageWidth * 0.7 + adjustedMargin + margin));
+      const insetColumnWidth = columnWidth; // Full width for the inset section
+
+
 
       // Add map image
       const mapWidth = pageWidth * 0.7;
@@ -312,17 +311,58 @@ const Print = ({ view, addedLayers }) => {
         "FAST"
       );
 
-      // Add title
+            // Set font size and style for the title
       pdf.setFontSize(20);
-      const maxTitleWidth = pageWidth * 0.7;
-      if (pdf.getStringUnitWidth(title) * 20 > maxTitleWidth) {
-        const titleParts = pdf.splitTextToSize(title, maxTitleWidth);
-        titleParts.forEach((line, index) => {
-          pdf.text(line, pageWidth * 0.85, 20 + index * 10, { align: "center" });
-        });
-      } else {
-        pdf.text(title, pageWidth * 0.85, 20, { align: "center" });
+      pdf.setFont("helvetica", "bold"); // Bold font for the title
+
+      const maxTitleWidth = columnWidth - 15; // Reduce the title width slightly
+      const titleRectHeight = Math.min(pageHeight * 0.15, pageHeight - 2 * margin); // Title rectangle height
+      const titleRectX = pageWidth * 0.7 + adjustedMargin + 30; // Move rectangle's X position slightly more to the right
+      const titleRectY = margin + 5; // Move rectangle's Y position slightly down
+
+      // Split the title into lines that fit within the adjusted rectangle width
+      const titleParts = pdf.splitTextToSize(title, maxTitleWidth);
+
+      let currentY = titleRectY + 15; // Start position for text within the rectangle, slightly lower
+      const lineSpacing = 10; // Increased line spacing for better readability
+
+      // Add the title text line by line, ensuring it stays within the rectangle
+      titleParts.forEach((line) => {
+        const lineWidth = pdf.getTextWidth(line);
+
+        // Calculate the center X position for the current line, ensuring it doesn't cross the rectangle
+        const centerX = titleRectX + (maxTitleWidth - lineWidth) / 2;
+
+        // Draw the line centered
+        if (currentY + lineSpacing <= titleRectY + titleRectHeight) {
+          // If the text fits within the rectangle, draw it
+          pdf.text(line, centerX, currentY);
+        } else {
+          // If text exceeds the rectangle, move to the next line below the rectangle
+          console.warn("Text exceeds the rectangle height. Moving to the next row below.");
+          currentY += lineSpacing; // Move further down
+          pdf.text(line, centerX, currentY); // Draw the line
+        }
+
+        // Move to the next line within the rectangle
+        currentY += lineSpacing;
+      });
+
+      // Ensure the text does not overflow the rectangle
+      if (currentY > titleRectY + titleRectHeight) {
+        console.warn("Title text has moved below the rectangle.");
       }
+
+         // Add the logo inside the rectangle box
+      const logoFilePath = "./print/logo_jktsatu.png"; // Path to the logo
+      const logoWidth = 20; // Width of the logo
+      const logoHeight = 20; // Height of the logo
+      const logoX = pageWidth * 0.7 + adjustedMargin + 5; // X position of the logo
+      const logoY = titleRectY + (titleRectHeight - logoHeight) / 2; // Center the logo vertically in the rectangle
+
+      // Add the logo to the rectangle
+      pdf.addImage(logoFilePath, "PNG", logoX, logoY, logoWidth, logoHeight);   
+      
 
       // Add timestamp
       const timestamp = new Date().toLocaleString();
@@ -343,13 +383,33 @@ const Print = ({ view, addedLayers }) => {
 
       // Add legend and map elements
       await addLegend(pdf, visibleLayers);
-      addMapElements(pdf);
 
       // Add borders
-      pdf.setLineWidth(1);
-      pdf.rect(5, 5, pageWidth - 10, pageHeight - 10);
-      pdf.rect(mapWidth + 15, 5, pageWidth - mapWidth - 20, pageHeight - 10);
+      // Add borders for full page
+      pdf.rect(margin, margin, pageWidth - 2 * margin, pageHeight - 2 * margin);
 
+      // Title area (15% of page height)
+      pdf.rect(pageWidth * 0.7 + adjustedMargin, margin, columnWidth, Math.min(pageHeight * 0.15, pageHeight - 2 * margin));
+
+      // North direction (18% of page height)
+      pdf.rect(pageWidth * 0.7 + adjustedMargin, margin + (pageHeight * 0.15), columnWidth, Math.min(pageHeight * 0.18, pageHeight - margin - (margin + (pageHeight * 0.15))));
+
+      // Legend (30% of page height)
+      pdf.rect(pageWidth * 0.7 + adjustedMargin, margin + (pageHeight * 0.15) + (pageHeight * 0.18), columnWidth, Math.min(pageHeight * 0.3, pageHeight - margin - (margin + (pageHeight * 0.15) + (pageHeight * 0.18))));
+
+      // Inset (40% of page height) split into 2 horizontal rows
+      let insetStartY = margin + (pageHeight * 0.15) + (pageHeight * 0.18) + (pageHeight * 0.3);
+      let insetHeight = Math.min(pageHeight * 0.4, pageHeight - margin - insetStartY);
+      let halfInsetHeight = insetHeight / 2; // Half height for two rows
+
+      // First row of Inset
+      pdf.rect(pageWidth * 0.7 + adjustedMargin, insetStartY, insetColumnWidth, halfInsetHeight);
+
+      // Second row of Inset
+      pdf.rect(pageWidth * 0.7 + adjustedMargin, insetStartY + halfInsetHeight, insetColumnWidth, halfInsetHeight);
+
+       
+                        
       // Generate and open PDF
       const pdfBlob = pdf.output("blob");
       const blobUrl = URL.createObjectURL(pdfBlob);
