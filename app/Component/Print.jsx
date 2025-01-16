@@ -19,6 +19,9 @@ import { Print as PrintIcon } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import jsPDF from "jspdf";
 
+// Fix import path - use absolute path from app root
+const logoImage = new URL('../print/logo_jktsatu.png', import.meta.url).href;
+
 const Print = ({ view, addedLayers }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isMasking, setIsMasking] = useState(false);
@@ -256,6 +259,16 @@ const Print = ({ view, addedLayers }) => {
 
   // Function to add scale bar and north arrow
 
+  // Add error handling for logo loading
+  const loadLogo = async () => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = logoImage;
+    });
+  };
+
   const handlePrintArea = async () => {
     if (!view) return;
 
@@ -317,8 +330,21 @@ const Print = ({ view, addedLayers }) => {
 
       const maxTitleWidth = columnWidth - 15; // Reduce the title width slightly
       const titleRectHeight = Math.min(pageHeight * 0.15, pageHeight - 2 * margin); // Title rectangle height
-      const titleRectX = pageWidth * 0.7 + adjustedMargin + 30; // Move rectangle's X position slightly more to the right
+      const titleRectX = pageWidth * 0.7 + adjustedMargin + 18; // Move rectangle's X position slightly more to the right
       const titleRectY = margin + 5; // Move rectangle's Y position slightly down
+
+      // Load and add logo
+      const logoWidth = 25; // Width in mm
+      const logoHeight = 25; // Height in mm
+      const logoX = titleRectX - 15 ; // Reduced from 5 to 2mm from left edge
+      const logoY = titleRectY + 5; // Keep vertical position same
+
+      // Add logo image
+      pdf.addImage(logoImage, 'PNG', logoX, logoY, logoWidth, logoHeight);
+
+      // Adjust title position - reduce spacing after logo from 5 to 2
+      const titleStartX = logoX + logoWidth + 2; // Reduced padding after logo to 2mm
+      const titleWidth = maxTitleWidth - logoWidth - 4; // Adjust total width calculation
 
       // Split the title into lines that fit within the adjusted rectangle width
       const titleParts = pdf.splitTextToSize(title, maxTitleWidth);
@@ -331,7 +357,7 @@ const Print = ({ view, addedLayers }) => {
         const lineWidth = pdf.getTextWidth(line);
 
         // Calculate the center X position for the current line, ensuring it doesn't cross the rectangle
-        const centerX = titleRectX + (maxTitleWidth - lineWidth) / 2;
+        const centerX = titleStartX + (titleWidth - lineWidth) / 4; // Reduced division factor from 2 to 4
 
         // Draw the line centered
         if (currentY + lineSpacing <= titleRectY + titleRectHeight) {
@@ -353,7 +379,7 @@ const Print = ({ view, addedLayers }) => {
         console.warn("Title text has moved below the rectangle.");
       } 
       
-
+      
       // Add timestamp
       const timestamp = new Date().toLocaleString();
       pdf.setFontSize(10);
