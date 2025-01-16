@@ -108,10 +108,8 @@ const MapComponent = () => {
           {/* Map Controls */}
          
           <Box sx={{ position: "absolute", top: "150px", right: "30px", zIndex: 1000 }}>
-            <Print view={view} addedLayers={addedLayers} />
+            <Print view={view} addedLayers={addedLayers} buttonSize={"48px"} />
           </Box>
-        
-          <SideBySideControl view={view} addedLayers={addedLayers} />
 
           {/* Meja Kerja Desktop */}
           <Box
