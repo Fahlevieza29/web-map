@@ -351,17 +351,7 @@ const Print = ({ view, addedLayers }) => {
       // Ensure the text does not overflow the rectangle
       if (currentY > titleRectY + titleRectHeight) {
         console.warn("Title text has moved below the rectangle.");
-      }
-
-         // Add the logo inside the rectangle box
-      const logoFilePath = "./print/logo_jktsatu.png"; // Path to the logo
-      const logoWidth = 20; // Width of the logo
-      const logoHeight = 20; // Height of the logo
-      const logoX = pageWidth * 0.7 + adjustedMargin + 5; // X position of the logo
-      const logoY = titleRectY + (titleRectHeight - logoHeight) / 2; // Center the logo vertically in the rectangle
-
-      // Add the logo to the rectangle
-      pdf.addImage(logoFilePath, "PNG", logoX, logoY, logoWidth, logoHeight);   
+      } 
       
 
       // Add timestamp
