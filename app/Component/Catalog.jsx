@@ -1,5 +1,5 @@
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
-import { Close, SelectAll } from "@mui/icons-material";
+import { Close, SelectAll, Menu } from "@mui/icons-material";
 import {
   Box,
   FormControl,
@@ -15,6 +15,7 @@ import {
   ListItemText,
   Switch,
   Typography,
+  Drawer,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { styled } from "@mui/material/styles";
@@ -143,6 +144,8 @@ const Catalog = ({
   setCurrentGroupName
 }) => {
   const [apiActive, setApiActive] = useState();
+  const [open, setOpen] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -245,205 +248,238 @@ const Catalog = ({
   };
 
   return (
-    <Box sx={modalStyle} id="box-catalog" display={"flex"}>
-      <Box
+    <>
+      <IconButton
+        onClick={() => setOpen(true)}
         sx={{
-          display: "flex",
-          flexDirection: "row",
-          height: "5%",
-          width: "100%",
-          justifyContent: "space-between",
+          position: 'absolute',
+          right: '20px',
+          bottom: '80px',
+          backgroundColor: 'white',
+          borderRadius: '50%',
+          padding: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          '&:hover': {
+            backgroundColor: '#f5f5f5',
+          },
+          zIndex: 1000,
         }}
       >
-        <Typography variant="h6">Katalog Layer</Typography>
-        <IconButton
-          onClick={handleCatalogToggle}
-          sx={{ width: "36px", height: "36px" }}
-          id="close-catalog-button"
-        >
-          <Close />
-        </IconButton>
-      </Box>
-      <Box sx={{ display: "flex", height: "10%", width: "100%" }}>
-        <FormControl
-          sx={{ m: 1, width: "100%", height: "100%" }}
-          variant="standard"
-        >
-          <InputLabel htmlFor="search-data">Cari Layer ...</InputLabel>
-          <Input
-            id="search-data"
-            value={searchInput}
-            onChange={(e) => searchInputHandle(e)}
-          />
-        </FormControl>
-      </Box>
-      {apiActive ? (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            height: "80%",
-            width: "100%",
-          }}
-        >
+        <Menu />
+      </IconButton>
+
+      <Drawer
+        anchor="right"
+        open={open}
+        onClose={() => setOpen(false)}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: '300px',
+            marginTop: '64px',
+          },
+        }}
+      >
+        <Box sx={modalStyle} id="box-catalog" display={"flex"}>
           <Box
             sx={{
               display: "flex",
               flexDirection: "row",
+              height: "5%",
               width: "100%",
               justifyContent: "space-between",
             }}
           >
-            <Box sx={{ width: "25%" }}>
-              <List
-                sx={{
-                  height: "100%",
-                  width: "100%",
-                  overflowY: "scroll",
-                  overflowX: "hidden",
-                  scrollbarWidth: "thin",
-                  scrollbarColor: "#888 #f1f1f1",
-                  "&::-webkit-scrollbar": { width: "10px" },
-                  "&::-webkit-scrollbar-track": { background: "#f1f1f1" },
-                  "&::-webkit-scrollbar-thumb": { background: "#888" },
-                  "&::-webkit-scrollbar-thumb:hover": { background: "#555" },
-                }}
-              >
-                <ListItem sx={{ padding: 0 }} key={"all-data"}>
-                  <ListItemButton
-                    onClick={() => handleGroup(allLayer)}
-                    sx={{ justifyContent: "center" }}
-                    key={"all-data"}
-                  >
-                    <ListItemIcon>
-                      <SelectAll
-                        sx={{
-                          width: "35px",
-                          height: "35px",
-                          color: "#579DBC",
-                        }}
-                      />
-                    </ListItemIcon>
-                    <ListItemText primary={allLayer.name} />
-                  </ListItemButton>
-                </ListItem>
-                {data?.map((group, index) => (
-                  <ListItem sx={{ padding: 0, backgroundColor: group.name === currentGroupName ? "lightblue" : "none" }} key={`group-${index}`}>
-                    <ListItemButton
-                      onClick={() => handleGroup(group)}
-                      sx={{ justifyContent: "center" }}
-                      id={`list-catalog-group-${index}`}
-                      key={`group-${index}`}
-                    >
-                      <ListItemIcon>
-                        <img
-                          src={icons.find((icon) => icon.name === group.name)?.icon || "https://jakartasatu.jakarta.go.id/apimobile/app/storage/lainnya.svg"}
-                          style={{ width: "35px", height: "35px" }}
-                          alt=""
-                        />
-                      </ListItemIcon>
-                      <ListItemText primary={group.name} key={`group-${index}`} />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-              </List>
-            </Box>
-            <Box sx={{ width: "74%" }}>
+            <Typography variant="h6">Katalog Layer</Typography>
+            <IconButton
+              onClick={handleCatalogToggle}
+              sx={{ width: "36px", height: "36px" }}
+              id="close-catalog-button"
+            >
+              <Close />
+            </IconButton>
+          </Box>
+          <Box sx={{ display: "flex", height: "10%", width: "100%" }}>
+            <FormControl
+              sx={{ m: 1, width: "100%", height: "100%" }}
+              variant="standard"
+            >
+              <InputLabel htmlFor="search-data">Cari Layer ...</InputLabel>
+              <Input
+                id="search-data"
+                value={searchInput}
+                onChange={(e) => searchInputHandle(e)}
+              />
+            </FormControl>
+          </Box>
+          {apiActive ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                height: "80%",
+                width: "100%",
+              }}
+            >
               <Box
                 sx={{
-                  height: "100%",
-                  overflowY: "scroll",
-                  justifyContent: "center",
-                  scrollbarWidth: "thin",
-                  scrollbarColor: "#888 #f1f1f1",
-                  "&::-webkit-scrollbar": { width: "10px" },
-                  "&::-webkit-scrollbar-track": { background: "#f1f1f1" },
-                  "&::-webkit-scrollbar-thumb": { background: "#888" },
-                  "&::-webkit-scrollbar-thumb:hover": { background: "#555" },
-                  padding: "5px",
+                  display: "flex",
+                  flexDirection: "row",
+                  width: "100%",
+                  justifyContent: "space-between",
                 }}
               >
-                <Grid
-                  container
-                  rowGap={1}
-                  columnGap={1}
-                  sx={{ paddingBottom: "8px", paddingTop: "8px" }}
-                >
-                  {group?.layers.map((layer) => {
-                    const showSwitch =
-                      !searchInput ||
-                      layer.name
-                        .toLowerCase()
-                        .includes(searchInput.toLowerCase());
-                    const isChecked =
-                      addedLayers?.length > 0 &&
-                      addedLayers.some((e) => e.id == layer.id);
-                    return (
-                      showSwitch && (
-                        <Grid
-                          item
-                          xs={5.9}
-                          sx={{
-                            display: "flex",
-                            justifyContent: "flex-start",
-                            alignItems: "flex-start",
-                            columnGap: "3px",
-                            borderRadius: "3px",
-                            boxShadow: "0px 0px 10px 2px rgba(0,0,0,0.1)",
-                            backgroundColor: "white",
-                            cursor: "pointer",
-                          }}
-                          key={`card-${layer.name}-${layer.id}`}
-                        >
-                          <Box
-                            onClick={
-                              isChecked
-                                ? () => removeLayer(layer)
-                                : () => addLayer(layer)
-                            }
+                <Box sx={{ width: "25%" }}>
+                  <List
+                    sx={{
+                      height: "100%",
+                      width: "100%",
+                      overflowY: "scroll",
+                      overflowX: "hidden",
+                      scrollbarWidth: "thin",
+                      scrollbarColor: "#888 #f1f1f1",
+                      "&::-webkit-scrollbar": { width: "10px" },
+                      "&::-webkit-scrollbar-track": { background: "#f1f1f1" },
+                      "&::-webkit-scrollbar-thumb": { background: "#888" },
+                      "&::-webkit-scrollbar-thumb:hover": { background: "#555" },
+                    }}
+                  >
+                    <ListItem sx={{ padding: 0 }} key={"all-data"}>
+                      <ListItemButton
+                        onClick={() => handleGroup(allLayer)}
+                        sx={{ justifyContent: "center" }}
+                        key={"all-data"}
+                      >
+                        <ListItemIcon>
+                          <SelectAll
                             sx={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              justifyContent: "flex-start",
-                              width: "100%",
-                              padding: "7px",
-                              columnGap: "4px",
+                              width: "35px",
+                              height: "35px",
+                              color: "#579DBC",
                             }}
-                            className={`button-catalog-${layer.id}`}
-                          >
-                            <FormControlLabel
-                              control={<IOSSwitch />}
-                              value={isChecked}
-                              checked={isChecked}
-                              sx={{ padding: 0, margin: 0 }}
+                          />
+                        </ListItemIcon>
+                        <ListItemText primary={allLayer.name} />
+                      </ListItemButton>
+                    </ListItem>
+                    {data?.map((group, index) => (
+                      <ListItem sx={{ padding: 0, backgroundColor: group.name === currentGroupName ? "lightblue" : "none" }} key={`group-${index}`}>
+                        <ListItemButton
+                          onClick={() => handleGroup(group)}
+                          sx={{ justifyContent: "center" }}
+                          id={`list-catalog-group-${index}`}
+                          key={`group-${index}`}
+                        >
+                          <ListItemIcon>
+                            <img
+                              src={icons.find((icon) => icon.name === group.name)?.icon || "https://jakartasatu.jakarta.go.id/apimobile/app/storage/lainnya.svg"}
+                              style={{ width: "35px", height: "35px" }}
+                              alt=""
                             />
-                            <Typography sx={{ padding: 0, margin: 0 }}>
-                              {layer.name}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                      )
-                    );
-                  })}
-                </Grid>
+                          </ListItemIcon>
+                          <ListItemText primary={group.name} key={`group-${index}`} />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+                <Box sx={{ width: "74%" }}>
+                  <Box
+                    sx={{
+                      height: "100%",
+                      overflowY: "scroll",
+                      justifyContent: "center",
+                      scrollbarWidth: "thin",
+                      scrollbarColor: "#888 #f1f1f1",
+                      "&::-webkit-scrollbar": { width: "10px" },
+                      "&::-webkit-scrollbar-track": { background: "#f1f1f1" },
+                      "&::-webkit-scrollbar-thumb": { background: "#888" },
+                      "&::-webkit-scrollbar-thumb:hover": { background: "#555" },
+                      padding: "5px",
+                    }}
+                  >
+                    <Grid
+                      container
+                      rowGap={1}
+                      columnGap={1}
+                      sx={{ paddingBottom: "8px", paddingTop: "8px" }}
+                    >
+                      {group?.layers.map((layer) => {
+                        const showSwitch =
+                          !searchInput ||
+                          layer.name
+                            .toLowerCase()
+                            .includes(searchInput.toLowerCase());
+                        const isChecked =
+                          addedLayers?.length > 0 &&
+                          addedLayers.some((e) => e.id == layer.id);
+                        return (
+                          showSwitch && (
+                            <Grid
+                              item
+                              xs={5.9}
+                              sx={{
+                                display: "flex",
+                                justifyContent: "flex-start",
+                                alignItems: "flex-start",
+                                columnGap: "3px",
+                                borderRadius: "3px",
+                                boxShadow: "0px 0px 10px 2px rgba(0,0,0,0.1)",
+                                backgroundColor: "white",
+                                cursor: "pointer",
+                              }}
+                              key={`card-${layer.name}-${layer.id}`}
+                            >
+                              <Box
+                                onClick={
+                                  isChecked
+                                    ? () => removeLayer(layer)
+                                    : () => addLayer(layer)
+                                }
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "flex-start",
+                                  justifyContent: "flex-start",
+                                  width: "100%",
+                                  padding: "7px",
+                                  columnGap: "4px",
+                                }}
+                                className={`button-catalog-${layer.id}`}
+                              >
+                                <FormControlLabel
+                                  control={<IOSSwitch />}
+                                  value={isChecked}
+                                  checked={isChecked}
+                                  sx={{ padding: 0, margin: 0 }}
+                                />
+                                <Typography sx={{ padding: 0, margin: 0 }}>
+                                  {layer.name}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          )
+                        );
+                      })}
+                    </Grid>
+                  </Box>
+                </Box>
               </Box>
             </Box>
-          </Box>
+          ) : (
+            <Box
+              sx={{
+                height: "80%",
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div className="loader"></div>
+            </Box>
+          )}
         </Box>
-      ) : (
-        <Box
-          sx={{
-            height: "80%",
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div className="loader"></div>
-        </Box>
-      )}
-    </Box>
+      </Drawer>
+    </>
   );
 };
 

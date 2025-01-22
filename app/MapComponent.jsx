@@ -2,12 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import "@arcgis/core/assets/esri/themes/light/main.css";
+// ArcGIS imports
 import Map from "@arcgis/core/Map";
 import MapView from "@arcgis/core/views/MapView";
 import TileLayer from "@arcgis/core/layers/TileLayer";
+import BasemapGallery from "@arcgis/core/widgets/BasemapGallery";
+import Expand from "@arcgis/core/widgets/Expand";
+// MUI imports
 import { Box, Button, IconButton } from "@mui/material";
 import { Layers, Menu, MenuOpen, Delete } from "@mui/icons-material";
-import SideBySideControl from "./Component/SideBySideControl";
+// Components
 import Print from "./Component/Print";
 import LayerList from "./Component/LayerList";
 import Catalog from "./Component/Catalog";
@@ -73,6 +77,7 @@ const MapComponent = () => {
       
       const map = new Map({
         layers: [customBasemap],
+        basemap: "streets-navigation-vector" // Add default basemap
       });
 
       const view = new MapView({
@@ -82,6 +87,21 @@ const MapComponent = () => {
         zoom: 15,
       });
 
+      // Create BasemapGallery widget
+      const basemapGallery = new BasemapGallery({
+        view: view
+      });
+
+      // Create expandable container
+      const bgExpand = new Expand({
+        view: view,
+        content: basemapGallery,
+        expanded: false
+      });
+
+      // Add to UI
+      view.ui.add(bgExpand, "top-right");
+
       viewRef.current = view;
       setView(view);
       setIsMapReady(true);
@@ -90,7 +110,6 @@ const MapComponent = () => {
 
   return (
     <Box sx={{ height: "100vh", width: "100vw", position: "relative" }}>
-      {/* Map Container */}
       <Box
         ref={mapContainerRef}
         sx={{
@@ -105,8 +124,6 @@ const MapComponent = () => {
 
       {isMapReady && (
         <>
-          {/* Map Controls */}
-         
           <Box sx={{ position: "absolute", top: "150px", right: "30px", zIndex: 1000 }}>
             <Print view={view} addedLayers={addedLayers} buttonSize={"48px"} />
           </Box>
@@ -223,7 +240,8 @@ const MapComponent = () => {
               </Box>
             )}
           </Box>
-           {/* Modals */}
+
+          {/* Modals */}
           <Box>
             {/* Catalog Modal */}
             {catalogOpen && (

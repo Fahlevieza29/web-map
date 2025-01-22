@@ -11,7 +11,7 @@ const Inset = () => {
 
   // Initialize ArcGIS Map
   useEffect(() => {
-    if (insetRef.current) {
+    if (InsetRef.current) {
       const customBasemap = new TileLayer({
         url: "https://tataruang.jakarta.go.id/server/rest/services/peta_dasar/Peta_Dasar_DKI_Jakarta/MapServer", // Replace with your custom basemap URL
       });
@@ -22,7 +22,7 @@ const Inset = () => {
       });
 
       const view = new MapView({
-        container: insetRef.current,
+        container: InsetRef.current,
         map: map,
         center: [106.80252962638318, -6.2185601286463585], // [longitude, latitude]
         zoom: 10,
@@ -36,7 +36,7 @@ const Inset = () => {
 
   return (
     <div
-      ref={insetRef}
+      ref={InsetRef}
       style={{ height: "100vh", width: "100vw", position: "relative" }}
     ></div>
   );
