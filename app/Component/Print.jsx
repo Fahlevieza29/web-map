@@ -14,13 +14,15 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import React, { useState } from "react";
+import Inset from "./Inset";
+import React, { useState, useRef } from "react";
 import { Print as PrintIcon } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import jsPDF from "jspdf";
+import { when } from "@arcgis/core/core/reactiveUtils";
 
 // Fix import path - use absolute path from app root
-const logoImage = new URL('../print/logo_jktsatu.png', import.meta.url).href;
+const logoImage = new URL('../print/logojkt_new.png', import.meta.url).href;
 
 const Print = ({ view, addedLayers }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -31,6 +33,7 @@ const Print = ({ view, addedLayers }) => {
   const [paperSize, setPaperSize] = useState("A3");
   const [orientation, setOrientation] = useState("landscape");
   const [error, setError] = useState(null);
+  const insetRef = useRef(null);
 
   const paperSizes = {
     A3: { width: 420, height: 297 },
@@ -49,6 +52,7 @@ const Print = ({ view, addedLayers }) => {
 
   const handleAreaSelect = () => {
     setIsDialogOpen(false);
+    handlePrintArea(); // Add this line to trigger print
     setIsMasking(true);
     setIsReadyToPrint(true);
   };
@@ -274,6 +278,30 @@ const Print = ({ view, addedLayers }) => {
 
     setIsLoading(true);
     try {
+      // Initialize inset view
+      const insetView = await view.clone();
+      await when(() => insetView.ready);
+      
+      // Set inset properties
+      insetView.container = document.createElement("div");
+      insetView.container.style.width = "200px";
+      insetView.container.style.height = "150px";
+      document.body.appendChild(insetView.container);
+
+      // Wait for inset to be ready
+      await insetView.when();
+      
+      // Capture inset screenshot
+      const insetScreenshot = await insetView.takeScreenshot({
+        format: "png",
+        width: 200,
+        height: 150
+      });
+
+      // Clean up inset
+      document.body.removeChild(insetView.container);
+      insetView.destroy();
+
       // Get visible layers
       const visibleLayers = view.map.layers.filter((layer) => layer.visible);
 
@@ -328,7 +356,7 @@ const Print = ({ view, addedLayers }) => {
       pdf.setFontSize(20);
       pdf.setFont("helvetica", "bold"); // Bold font for the title
 
-      const maxTitleWidth = columnWidth - 15; // Reduce the title width slightly
+      const maxTitleWidth = columnWidth - 20; // Reduce the title width slightly
       const titleRectHeight = Math.min(pageHeight * 0.15, pageHeight - 2 * margin); // Title rectangle height
       const titleRectX = pageWidth * 0.7 + adjustedMargin + 18; // Move rectangle's X position slightly more to the right
       const titleRectY = margin + 5; // Move rectangle's Y position slightly down
@@ -357,7 +385,7 @@ const Print = ({ view, addedLayers }) => {
         const lineWidth = pdf.getTextWidth(line);
 
         // Calculate the center X position for the current line, ensuring it doesn't cross the rectangle
-        const centerX = titleStartX + (titleWidth - lineWidth) / 4; // Reduced division factor from 2 to 4
+        const centerX = titleStartX + (titleWidth - lineWidth) / 3; // Reduced division factor from 2 to 4
 
         // Draw the line centered
         if (currentY + lineSpacing <= titleRectY + titleRectHeight) {
@@ -424,7 +452,20 @@ const Print = ({ view, addedLayers }) => {
       // Second row of Inset
       pdf.rect(pageWidth * 0.7 + adjustedMargin, insetStartY + halfInsetHeight, insetColumnWidth, halfInsetHeight);
 
-       
+      // Add inset to first row rectangle
+      pdf.addImage(
+        insetScreenshot.dataUrl,
+        "PNG",
+        pageWidth * 0.7 + adjustedMargin,
+        insetStartY,
+        insetColumnWidth,
+        halfInsetHeight,
+        undefined,
+        "FAST"
+      );
+
+      // Cleanup
+      insetView.destroy();
                         
       // Generate and open PDF
       const pdfBlob = pdf.output("blob");
@@ -516,7 +557,7 @@ const Print = ({ view, addedLayers }) => {
           <Button
             fullWidth
             variant="contained"
-            onClick={handleAreaSelect}
+            onClick={handlePrintArea}  // Make sure this is connected
             disabled={!title}
             sx={{
               backgroundColor: "#003577",
