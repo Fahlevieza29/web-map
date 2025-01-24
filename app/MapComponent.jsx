@@ -8,6 +8,9 @@ import MapView from "@arcgis/core/views/MapView";
 import TileLayer from "@arcgis/core/layers/TileLayer";
 import BasemapGallery from "@arcgis/core/widgets/BasemapGallery";
 import Expand from "@arcgis/core/widgets/Expand";
+import Graphic from "@arcgis/core/Graphic"; // Add import for Graphic
+import Search from "@arcgis/core/widgets/Search"; // Add import for Search
+import Swipe from "@arcgis/core/widgets/Swipe"; // Add import for Swipe
 // MUI imports
 import { Box, Button, IconButton } from "@mui/material";
 import { Layers, Menu, MenuOpen, Delete } from "@mui/icons-material";
@@ -55,9 +58,15 @@ const MapComponent = () => {
   const [group, setGroup] = useState(null);
   const [currentGroupName, setCurrentGroupName] = useState("");
   const [tableLayer, setTableLayer] = useState(null);
+  const [userLocation, setUserLocation] = useState(null); // Add state for location
+  const [locationPermission, setLocationPermission] = useState('prompt'); // Add new state
 
   const mejaKerjaToggle = () => setMejaKerjaOpen(!mejaKerjaOpen);
-  const handleCatalogToggle = () => setCatalogOpen(!catalogOpen);
+  const handleCatalogToggle = () => {
+    setCatalogOpen(!catalogOpen);
+    // Add console log for debugging
+    console.log("Catalog toggled:", !catalogOpen);
+  };
 
   const handleRemoveAll = () => {
     if (viewRef.current) {
@@ -71,28 +80,39 @@ const MapComponent = () => {
   // Initialize ArcGIS Map
   useEffect(() => {
     if (!viewRef.current && mapContainerRef.current) {
-      const customBasemap = new TileLayer({
-        url: "https://tataruang.jakarta.go.id/server/rest/services/peta_dasar/Peta_Dasar_DKI_Jakarta/MapServer", // Ganti dengan URL basemap kustom Anda
+      // Create tile layers
+      const worldImageryLayer = new TileLayer({
+        url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer"
       });
-      
+
+      const worldStreetMapLayer = new TileLayer({
+        url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer"
+      });
+
       const map = new Map({
-        layers: [customBasemap],
-        basemap: "streets-navigation-vector" // Add default basemap
+        basemap: "topo-vector",
+        layers: [worldImageryLayer, worldStreetMapLayer]
       });
 
       const view = new MapView({
         container: mapContainerRef.current,
         map: map,
-        center: [106.80252962638318, -6.2185601286463585], // [longitude, latitude]
+        center: [106.80252962638318, -6.2185601286463585],
         zoom: 15,
       });
 
-      // Create BasemapGallery widget
+      // Configure BasemapGallery
       const basemapGallery = new BasemapGallery({
-        view: view
+        view: view,
+        source: {
+          portal: {
+            url: "https://www.arcgis.com",
+            useVectorBasemaps: true // Enable vector basemaps
+          }
+        }
       });
 
-      // Create expandable container
+      // Create expand widget
       const bgExpand = new Expand({
         view: view,
         content: basemapGallery,
@@ -102,11 +122,152 @@ const MapComponent = () => {
       // Add to UI
       view.ui.add(bgExpand, "top-right");
 
+      // Create search widget
+      const searchWidget = new Search({
+        view: view,
+        locationEnabled: true,
+        popupEnabled: true,
+        position: "top-right"
+      });
+
+      // Add widget to the view
+      view.ui.add(searchWidget, {
+        position: "top-right",
+        index: 2
+      });
+
+      // Create and add Swipe widget
+      const swipe = new Swipe({
+        view: view,
+        leadingLayers: [worldImageryLayer],
+        trailingLayers: [worldStreetMapLayer],
+        position: 50
+      });
+
+      view.ui.add(swipe);
+
       viewRef.current = view;
       setView(view);
       setIsMapReady(true);
+
+      requestLocationPermission(); // Add permission check and location tracking
     }
   }, []);
+
+  // Add useEffect for GPS tracking
+  useEffect(() => {
+    if (viewRef.current && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const { latitude, longitude } = position.coords;
+
+        // Create point geometry
+        const point = {
+          type: "point",
+          longitude: longitude,
+          latitude: latitude
+        };
+
+        // Create marker symbol
+        const markerSymbol = {
+          type: "simple-marker",
+          color: "red",
+          outline: {
+            color: "white",
+            width: 1
+          }
+        };
+
+        // Create graphic
+        const pointGraphic = new Graphic({
+          geometry: point,
+          symbol: markerSymbol
+        });
+
+        // Add to view
+        viewRef.current.graphics.removeAll(); // Clear existing
+        viewRef.current.graphics.add(pointGraphic);
+
+        // Center map on location
+        viewRef.current.center = [longitude, latitude];
+        viewRef.current.zoom = 15;
+
+        setUserLocation({ latitude, longitude });
+      }, (error) => {
+        console.error("Geolocation error:", error);
+      });
+    }
+  }, [viewRef.current]);
+
+  // Add permission check and location tracking
+  const requestLocationPermission = async () => {
+    try {
+      const permission = await navigator.permissions.query({ name: 'geolocation' });
+      setLocationPermission(permission.state);
+
+      if (permission.state === 'granted') {
+        startLocationTracking();
+      } else if (permission.state === 'prompt') {
+        // Request permission
+        navigator.geolocation.getCurrentPosition(
+          () => {
+            setLocationPermission('granted');
+            startLocationTracking();
+          },
+          (error) => {
+            console.error('Permission denied:', error);
+            setLocationPermission('denied');
+          }
+        );
+      }
+    } catch (error) {
+      console.error('Error requesting permission:', error);
+    }
+  };
+
+  const startLocationTracking = () => {
+    if (viewRef.current && navigator.geolocation) {
+      navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+
+          const point = {
+            type: "point",
+            longitude: longitude,
+            latitude: latitude
+          };
+
+          const markerSymbol = {
+            type: "simple-marker",
+            color: "red",
+            outline: {
+              color: "white",
+              width: 1
+            }
+          };
+
+          const pointGraphic = new Graphic({
+            geometry: point,
+            symbol: markerSymbol
+          });
+
+          viewRef.current.graphics.removeAll();
+          viewRef.current.graphics.add(pointGraphic);
+          viewRef.current.center = [longitude, latitude];
+          viewRef.current.zoom = 15;
+
+          setUserLocation({ latitude, longitude });
+        },
+        (error) => {
+          console.error('Location tracking error:', error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    }
+  };
 
   return (
     <Box sx={{ height: "100vh", width: "100vw", position: "relative" }}>
@@ -246,7 +407,7 @@ const MapComponent = () => {
             {/* Catalog Modal */}
             {catalogOpen && (
               <Catalog
-                view={view}
+                view={viewRef.current}
                 handleCatalogToggle={handleCatalogToggle}
                 data={data}
                 setData={setData}
