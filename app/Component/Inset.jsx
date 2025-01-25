@@ -5,40 +5,58 @@ import "@arcgis/core/assets/esri/themes/light/main.css";
 import Map from "@arcgis/core/Map";
 import MapView from "@arcgis/core/views/MapView";
 import TileLayer from "@arcgis/core/layers/TileLayer";
+import { watch } from "@arcgis/core/core/reactiveUtils";
 
-const Inset = () => {
+const Inset = ({ mainView }) => {
   const insetRef = useRef(null);
 
-  // Initialize ArcGIS Map
   useEffect(() => {
-    if (InsetRef.current) {
-      const customBasemap = new TileLayer({
-        url: "https://tataruang.jakarta.go.id/server/rest/services/peta_dasar/Peta_Dasar_DKI_Jakarta/MapServer", // Replace with your custom basemap URL
-      });
+    if (!mainView || !insetRef.current) return;
 
-      const map = new Map({
-        basemap: "streets", // Optional: Set a basemap in addition to the custom basemap
-        layers: [customBasemap],
-      });
+    // Create inset map
+    const map = new Map({
+      basemap: "streets-navigation-vector"
+    });
 
-      const view = new MapView({
-        container: InsetRef.current,
-        map: map,
-        center: [106.80252962638318, -6.2185601286463585], // [longitude, latitude]
-        zoom: 10,
-      });
+    // Create inset view
+    const insetView = new MapView({
+      container: insetRef.current,
+      map: map,
+      center: mainView.center,
+      zoom: mainView.zoom - 3,
+      constraints: {
+        rotationEnabled: false
+      },
+      ui: {
+        components: [] // Remove all UI components
+      }
+    });
 
-      return () => {
-        view.destroy(); // Clean up the view on component unmount
-      };
-    }
-  }, []);
+    // Sync with main view
+    const watchHandle = watch(
+      () => mainView.extent,
+      (extent) => {
+        insetView.extent = extent;
+      }
+    );
+
+    // Cleanup
+    return () => {
+      watchHandle.remove();
+      insetView.destroy();
+    };
+  }, [mainView]);
 
   return (
     <div
-      ref={InsetRef}
-      style={{ height: "100vh", width: "100vw", position: "relative" }}
-    ></div>
+      ref={insetRef}
+      style={{
+        width: '100%',
+        height: '100%',
+        border: '1px solid #ccc',
+        backgroundColor: 'white'
+      }}
+    />
   );
 };
 
