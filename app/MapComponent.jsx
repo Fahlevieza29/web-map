@@ -8,9 +8,12 @@ import MapView from "@arcgis/core/views/MapView";
 import TileLayer from "@arcgis/core/layers/TileLayer";
 import BasemapGallery from "@arcgis/core/widgets/BasemapGallery";
 import Expand from "@arcgis/core/widgets/Expand";
-import Graphic from "@arcgis/core/Graphic"; // Add import for Graphic
-import Search from "@arcgis/core/widgets/Search"; // Add import for Search
-import Swipe from "@arcgis/core/widgets/Swipe"; // Add import for Swipe
+import Graphic from "@arcgis/core/Graphic";
+import Search from "@arcgis/core/widgets/Search";
+import Swipe from "@arcgis/core/widgets/Swipe";
+import ScaleBar from "@arcgis/core/widgets/ScaleBar";
+import Sketch from "@arcgis/core/widgets/Sketch";
+import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 // MUI imports
 import { Box, Button, IconButton } from "@mui/material";
 import { Layers, Menu, MenuOpen, Delete } from "@mui/icons-material";
@@ -80,25 +83,31 @@ const MapComponent = () => {
   // Initialize ArcGIS Map
   useEffect(() => {
     if (!viewRef.current && mapContainerRef.current) {
-      // Create tile layers
-      const worldImageryLayer = new TileLayer({
-        url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer"
+      // Create graphics layer first
+      const sketchLayer = new GraphicsLayer();
+
+      // Create satellite layer
+      const satelliteLayer = new TileLayer({
+        url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+        title: "World Imagery"
       });
 
-      const worldStreetMapLayer = new TileLayer({
-        url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer"
+      // Create streets layer
+      const streetsLayer = new TileLayer({
+        url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer",
+        title: "World Street Map"
       });
 
       const map = new Map({
-        basemap: "topo-vector",
-        layers: [worldImageryLayer, worldStreetMapLayer]
+        basemap: "streets-navigation-vector",
+        layers: [satelliteLayer, streetsLayer, sketchLayer]  // Add both layers
       });
 
       const view = new MapView({
         container: mapContainerRef.current,
         map: map,
         center: [106.80252962638318, -6.2185601286463585],
-        zoom: 15,
+        zoom: 15
       });
 
       // Configure BasemapGallery
@@ -139,12 +148,52 @@ const MapComponent = () => {
       // Create and add Swipe widget
       const swipe = new Swipe({
         view: view,
-        leadingLayers: [worldImageryLayer],
-        trailingLayers: [worldStreetMapLayer],
-        position: 50
+        leadingLayers: [satelliteLayer],    // Satellite on one side
+        trailingLayers: [streetsLayer],     // Streets on other side
+        position: 35,                       // 35% from left
+        direction: "horizontal"             // horizontal swipe
       });
 
       view.ui.add(swipe);
+
+      // Configure ScaleBar
+      const scaleBar = new ScaleBar({
+        view: view,
+        unit: "dual",
+        style: "line",
+        borderColor: [0, 0, 0, 0.5]
+      });
+
+      // Configure Sketch after layer is defined
+      const sketch = new Sketch({
+        view: view,
+        layer: sketchLayer,
+        creationMode: "continuous",
+        visibleElements: {
+          createTools: {
+            point: true,
+            polyline: true,
+            polygon: true,
+            rectangle: true,
+            circle: true
+          },
+          selectionTools: {
+            "lasso-selection": true,
+            "rectangle-selection": true
+          },
+          settingsMenu: true,
+          undoRedoMenu: true
+        }
+      });
+
+      view.ui.add(sketch, {
+        position: "bottom-right",
+        index: 0
+      });
+
+      view.ui.add(scaleBar, {
+        position: "bottom-left"
+      });
 
       viewRef.current = view;
       setView(view);
@@ -279,7 +328,7 @@ const MapComponent = () => {
           position: "absolute",
           top: 0,
           left: 0,
-          zIndex: 10,
+          zIndex: 1,
         }}
       />
 
